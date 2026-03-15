@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>আমার হিসাব - প্রিমিয়াম এডিশন</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --primary: #1e293b;
+            --accent: #fbbf24;
+            --bg: #f1f5f9;
+            --white: #ffffff;
+            --danger: #ef4444;
+            --success: #10b981;
+            --table-border: #e2e8f0;
+            --info: #3b82f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: 'Noto Sans Bengali', sans-serif; 
+            background-color: var(--bg); 
+            color: var(--primary);
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+        .loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); z-index: 9999;
+            display: none; justify-content: center; align-items: center;
+            flex-direction: column; color: var(--primary); backdrop-filter: blur(5px);
+        }
+        .spinner {
+            border: 4px solid #f3f3f3; border-top: 4px solid var(--accent);
+            border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .top-bar {
+            background: var(--white); height: 75px; display: flex; align-items: center;
+            justify-content: center; position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 0 15px;
+        }
+
+        .menu-btn { position: absolute; left: 15px; cursor: pointer; color: var(--primary); }
+        
+        .app-name {
+            font-size: clamp(1.4rem, 6vw, 2.2rem); font-weight: 800;
+            background: linear-gradient(135deg, #1e293b, #fbbf24);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            text-align: center; letter-spacing: -1px;
+        }
+
+        .sidebar {
+            position: fixed; left: -100%; top: 0; width: 280px; height: 100%;
+            background: var(--primary); color: white; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1001; padding-top: 20px; box-shadow: 10px 0 30px rgba(0,0,0,0.3);
+            overflow-y: auto;
+        }
+
+        .sidebar.active { left: 0; }
+        .sidebar-header { padding: 0 20px 25px; border-bottom: 1px solid #334155; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .sidebar-item { padding: 15px 20px; display: flex; align-items: center; cursor: pointer; transition: 0.3s; color: #94a3b8; border-bottom: 1px solid #334155; font-weight: 500; }
+        .sidebar-item:hover { background: #334155; color: var(--accent); }
+        .sidebar-item .material-icons { margin-right: 15px; }
+
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; z-index: 1000; backdrop-filter: blur(4px); }
+        .overlay.active { display: block; }
+
+        .container { padding: 20px; max-width: 1200px; margin: 0 auto; width: 100%; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+
+        .table-card { background: var(--white); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid var(--table-border); overflow: hidden; width: 100%; margin-top: 10px; }
+        .table-responsive { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem; }
+        th { background-color: #f8fafc; color: #64748b; font-weight: 700; padding: 16px; border-bottom: 2px solid var(--table-border); white-space: nowrap; }
+        td { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; color: #1e293b; }
+
+        .card { background: var(--white); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.02); border: 1px solid #e2e8f0; transition: 0.3s; }
+        .card-header { padding: 18px; background: #f8fafc; font-weight: 700; display: flex; justify-content: space-between; border-bottom: 1px solid #edf2f7; }
+        .card-body { padding: 18px; }
+
+        .balance-card { background: linear-gradient(135deg, #1e293b, #334155); color: white; padding: 25px; border-radius: 20px; margin-bottom: 25px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+
+        .actions { display: flex; gap: 10px; justify-content: center; }
+        .actions .material-icons { font-size: 20px; cursor: pointer; padding: 6px; border-radius: 8px; }
+        .icon-edit { color: #3b82f6; background: #eff6ff; }
+        .icon-delete { color: var(--danger); background: #fef2f2; }
+
+        .modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 20px; width: 95%; max-width: 450px; z-index: 1002; display: none; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .modal.active { display: block; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; outline: none; }
+        .btn-submit { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; }
+
+        .comparison-box { margin-top: 15px; padding: 15px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; font-size: 0.9rem; line-height: 1.6; }
+
+        @media print { .top-bar, .sidebar, .no-print, .actions { display: none !important; } .container { padding: 0; } .table-card { border: 1px solid #eee; } }
+    </style>
+</head>
+<body>
+
+    <div class="loader-overlay" id="loader">
+        <div class="spinner"></div>
+        <h3 id="loaderText">তথ্য লোড হচ্ছে...</h3>
+    </div>
+
+    <div class="top-bar">
+        <div class="menu-btn" onclick="toggleSidebar()"><span class="material-icons">menu</span></div>
+        <div class="app-name">আমার হিসাব</div>
+    </div>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span style="font-weight:700; color:var(--accent); font-size: 1.2rem;">আমার হিসাব</span>
+            <span class="material-icons" onclick="toggleSidebar()" style="cursor:pointer">close</span>
+        </div>
+        <div class="sidebar-item" onclick="showDashboard()"><span class="material-icons">dashboard</span>হিসাব</div>
+        <div class="sidebar-item" onclick="openAddDataModal()"><span class="material-icons">add_circle</span>তথ্য যুক্ত করুন</div>
+        <div id="dynamic-menu"></div>
+        <div class="sidebar-item" onclick="showReportUI()"><span class="material-icons">summarize</span> রিপোর্ট</div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeEverything()"></div>
+    <div class="container" id="main-content"></div>
+
+    <div class="modal" id="addModal">
+        <h3 id="modalTitle" style="margin-bottom:20px; text-align:center;">নতুন তথ্য যুক্ত করুন</h3>
+        <input type="hidden" id="editRowIndex">
+        <div class="form-group">
+            <label>ক্যাটাগরি সিলেক্ট করুন</label>
+            <select id="sheetSelector" onchange="generateFormFields()"></select>
+        </div>
+        <div id="dynamicFields"></div>
+        <button class="btn-submit" onclick="saveData()">সেভ করুন</button>
+        <button onclick="closeModal()" style="width:100%; margin-top:10px; border:none; background:none; color:#94a3b8; cursor:pointer;">ফিরে যান</button>
+    </div>
+
+    <script>
+        // SCRIPT_URL unchanged as requested
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4bBloAIUlw_2WJWhGYF3A3i4KjjhVfhh-Zj_ue9SRL_DRB4Ey56Q_Li4PjsgMWwTa/exec';
+
+        let appData = {};
+        let appConfig = {};
+        let sheetNamesList = [];
+
+        function showLoader(text = "তথ্য আপডেট হচ্ছে...") { 
+            document.getElementById('loaderText').innerText = text;
+            document.getElementById('loader').style.display = 'flex'; 
+        }
+        function hideLoader() { document.getElementById('loader').style.display = 'none'; }
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+        function closeEverything() {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById('addModal').classList.remove('active');
+        }
+
+        async function loadAppData() {
+            showLoader("MD: MEHEDI HASAN");
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                sheetNamesList = data.sheetNames;
+                appConfig = data.config;
+                appData = data.data;
+                generateMenu();
+                showDashboard();
+            } catch (error) {
+                alert('ডেটা লোড করতে ব্যর্থ!');
+            }
+            hideLoader();
+        }
+
+        function generateMenu() {
+            const menu = document.getElementById('dynamic-menu');
+            menu.innerHTML = sheetNamesList.map(name => 
+                `<div class="sidebar-item" onclick="showSheet('${name}')"><span class="material-icons">folder</span>${name}</div>`
+            ).join('');
+            document.getElementById('sheetSelector').innerHTML = sheetNamesList.map(n => `<option value="${n}">${n}</option>`).join('');
+        }
+
+        function calculateTotal(sheetName) {
+            let currentData = appData[sheetName] || [];
+            let amountKey = "টাকার পরিমাণ";
+            if(appConfig[sheetName]) {
+                let found = appConfig[sheetName].find(c => c.name.includes('টাকা') || c.name.includes('পরিমাণ'));
+                if(found) amountKey = found.name;
+            }
+            return currentData.reduce((acc, curr) => {
+                let val = String(curr[amountKey] || 0).replace(/[৳,]/g, '').trim();
+                return acc + (parseFloat(val) || 0);
+            }, 0);
+        }
+
+        function showDashboard() {
+    // এখানে 'আয়ের হিসাব' এবং 'দৈনিক ব্যয়ের হিসাব' হলো আপনার শিটের নাম
+    // আপনার গুগল শিটে যদি নাম ভিন্ন থাকে, তবে এখানে সেই নাম দিন
+    let totalIncome = calculateTotal('আয়ের হিসাব '); 
+    let totalExpense = calculateTotal('দৈনিক ব্যয় হিসাব ');
+    let balance = totalIncome - totalExpense;
+
+    let html = `
+        <div class="balance-card">
+            <p style="opacity:0.8; font-size:0.9rem;">বর্তমান মোট ব্যালেন্স</p>
+            <h1 style="font-size:2.5rem; margin:10px 0;">৳ ${balance.toLocaleString('bn-BD')}</h1>
+            <div style="display:flex; justify-content:space-around; margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
+                <div><small>মোট আয়</small><br><b>৳${totalIncome.toLocaleString('bn-BD')}</b></div>
+                <div><small>মোট ব্যয়</small><br><b>৳${totalExpense.toLocaleString('bn-BD')}</b></div>
+            </div>
+        </div>
+        <div class="grid">`;
+
+            sheetNamesList.forEach(name => {
+                let currentData = appData[name] || [];
+                let amountKey = "টাকার পরিমাণ";
+                let nameKey = "নাম";
+                if(appConfig[name]) {
+                    let fAmount = appConfig[name].find(c => c.name.includes('টাকা') || c.name.includes('পরিমাণ'));
+                    if(fAmount) amountKey = fAmount.name;
+                    let fName = appConfig[name].find(c => c.name.includes('নাম') || c.name.includes('বিবরণ') || c.name.includes('ক্যাটাগরি'));
+                    if(fName) nameKey = fName.name;
+                }
+                const latest = [...currentData].sort((a,b) => new Date(b["তারিখ"]) - new Date(a["তারিখ"])).slice(0, 3);
+                html += `
+                    <div class="card">
+                        <div class="card-header"><span>${name}</span><span class="material-icons" style="color:var(--accent)">trending_up</span></div>
+                        <div class="card-body">
+                            ${latest.length ? latest.map(i => `
+                                <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px dashed #eee; font-size:0.85rem;">
+                                    <span><b>${i["তারিখ"] || ''}</b><br>${i[nameKey] || 'তথ্য'}</span>
+                                    <span style="color:var(--primary); font-weight:700;">৳${i[amountKey] || 0}</span>
+                                </div>`).join('') : '<p style="text-align:center; color:#ccc;">কোনো তথ্য নেই</p>'}
+                        </div>
+                        <div style="padding:12px; background:#f8fafc; text-align:right; font-weight:700; color:var(--primary);">মোট: ৳ ${calculateTotal(name).toLocaleString('bn-BD')}</div>
+                    </div>`;
+            });
+            html += '</div>';
+            document.getElementById('main-content').innerHTML = html;
+            closeEverything();
+        }
+
+        function showSheet(name) {
+            let fields = appConfig[name].map(c => c.name);
+            let data = [...(appData[name] || [])].sort((a, b) => new Date(b["তারিখ"]) - new Date(a["তারিখ"]));
+            let html = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+                    <h2 style="border-left:5px solid var(--accent); padding-left:10px;">${name}</h2>
+                    <button onclick="showDashboard()" class="no-print" style="background:none; border:none; cursor:pointer"><span class="material-icons">close</span></button>
+                </div>
+                <div class="table-card"><div class="table-responsive"><table>
+                <thead><tr>${fields.map(f => `<th>${f}</th>`).join('')}<th class="no-print">অ্যাকশন</th></tr></thead>
+                <tbody>${data.map(item => `<tr>${fields.map(f => `<td>${item[f] || '-'}</td>`).join('')}
+                <td class="no-print"><div class="actions">
+                <span class="material-icons icon-edit" onclick="editItem('${name}', ${item._rowIndex})">edit</span>
+                <span class="material-icons icon-delete" onclick="deleteItem('${name}', ${item._rowIndex})">delete</span>
+                </div></td></tr>`).join('')}</tbody></table></div></div>`;
+            document.getElementById('main-content').innerHTML = html;
+            closeEverything();
+        }
+
+        function openAddDataModal() {
+            document.getElementById('modalTitle').innerText = "নতুন তথ্য যুক্ত করুন";
+            document.getElementById('editRowIndex').value = "";
+            document.getElementById('sheetSelector').disabled = false;
+            document.getElementById('addModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+            generateFormFields();
+        }
+
+        function generateFormFields(prefillData = null) {
+            const sheet = document.getElementById('sheetSelector').value;
+            const container = document.getElementById('dynamicFields');
+            const fieldsConfig = appConfig[sheet] || [];
+            container.innerHTML = fieldsConfig.map(f => {
+                let val = prefillData ? (prefillData[f.name] || '') : '';
+                if(f.type === 'date' && !val && !prefillData) val = new Date().toISOString().split('T')[0];
+                return `<div class="form-group"><label>${f.name}</label>
+                ${f.type === 'dropdown' ? `<select id="field_${f.name}">${f.options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}</select>` : 
+                `<input type="${f.type}" id="field_${f.name}" value="${val}">`}</div>`;
+            }).join('');
+        }
+
+        async function saveData() {
+            const sheet = document.getElementById('sheetSelector').value;
+            const editRowIndex = document.getElementById('editRowIndex').value;
+            let newData = {};
+            appConfig[sheet].forEach(f => { newData[f.name] = document.getElementById(`field_${f.name}`).value; });
+            closeModal();
+            showLoader("সেভ হচ্ছে...");
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: editRowIndex ? 'EDIT' : 'ADD', sheetName: sheet, data: newData, rowIndex: editRowIndex ? parseInt(editRowIndex) : null })});
+                await loadAppData(); 
+            } catch (err) { alert('ত্রুটি হয়েছে'); }
+            hideLoader();
+        }
+
+        async function deleteItem(sheetName, rowIndex) {
+            if(!confirm('আপনি কি নিশ্চিত?')) return;
+            showLoader("মুছে ফেলা হচ্ছে...");
+            try {
+                await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'DELETE', sheetName: sheetName, rowIndex: rowIndex }) });
+                await loadAppData();
+                showSheet(sheetName);
+            } catch (err) { alert('ত্রুটি হয়েছে'); }
+            hideLoader();
+        }
+
+        function editItem(sheetName, rowIndex) {
+            const item = appData[sheetName].find(i => i._rowIndex === rowIndex);
+            document.getElementById('modalTitle').innerText = "তথ্য এডিট করুন";
+            document.getElementById('sheetSelector').value = sheetName;
+            document.getElementById('sheetSelector').disabled = true;
+            document.getElementById('editRowIndex').value = rowIndex;
+            document.getElementById('addModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+            generateFormFields(item);
+        }
+
+        function closeModal() {
+            document.getElementById('addModal').classList.remove('active');
+            document.getElementById('overlay').classList.remove('active');
+        }
+
+        function showReportUI() {
+            document.getElementById('main-content').innerHTML = `
+                <div class="table-card no-print" style="padding:25px; margin-bottom:20px">
+                    <h3 style="margin-bottom:15px;">মাসিক প্রফেশনাল রিপোর্ট</h3>
+                    <div style="display:flex; gap:12px; flex-wrap: wrap;">
+                        <input type="month" id="repMonth" style="flex:1; padding:12px; border:1.5px solid #e2e8f0; border-radius:10px;">
+                        <button class="btn-submit" style="width:auto; padding:0 30px;" onclick="generateReport()">রিপোর্ট জেনারেট করুন</button>
+                    </div>
+                </div>
+                <div id="reportArea"></div>`;
+            closeEverything();
+        }
+
+        function generateReport() {
+            const val = document.getElementById('repMonth').value;
+            if(!val) return alert('মাস নির্বাচন করুন');
+            const [year, month] = val.split('-');
+            
+            // Logic for previous month comparison
+            const prevDate = new Date(year, month - 2, 1);
+            const prevYear = prevDate.getFullYear();
+            const prevMonth = prevDate.getMonth() + 1;
+
+            let html = `<div style="text-align:center; margin-bottom:30px; background:white; padding:30px; border-radius:15px; border:1px solid #eee;">
+                            <h1 style="color:var(--primary); font-size:2rem;">মাস্টার রিপোর্ট</h1>
+                            <p style="color:#64748b; margin-top:5px;">সময়কাল:${month}/${year}</p>
+                            <p style="font-weight:700; color:var(--accent); margin-top:5px;">ডেভেলপার: মেহেদী হাসান</p>
+                        </div>`;
+            
+            let totalFound = 0;
+            let currentMonthGrandTotal = 0;
+            let prevMonthGrandTotal = 0;
+
+            sheetNamesList.forEach(name => {
+                let filtered = (appData[name] || []).filter(d => {
+                    if(!d["তারিখ"]) return false;
+                    let dDate = new Date(d["তারিখ"]);
+                    return dDate.getFullYear() == year && (dDate.getMonth() + 1) == month;
+                });
+
+                let prevFiltered = (appData[name] || []).filter(d => {
+                    if(!d["তারিখ"]) return false;
+                    let dDate = new Date(d["তারিখ"]);
+                    return dDate.getFullYear() == prevYear && (dDate.getMonth() + 1) == prevMonth;
+                });
+
+                if(filtered.length > 0 || prevFiltered.length > 0) {
+                    let headers = appConfig[name].map(c => c.name);
+                    let amtKey = headers.find(h => h.includes('টাকা') || h.includes('পরিমাণ'));
+                    
+                    let sheetTotal = filtered.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
+                    let prevSheetTotal = prevFiltered.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
+                    
+                    currentMonthGrandTotal += sheetTotal;
+                    prevMonthGrandTotal += prevSheetTotal;
+
+                    if(filtered.length > 0) {
+                        totalFound++;
+                        let diff = sheetTotal - prevSheetTotal;
+                        let perc = prevSheetTotal !== 0 ? ((diff / prevSheetTotal) * 100).toFixed(1) : 0;
+                        let statusColor = diff > 0 ? 'var(--danger)' : 'var(--success)';
+
+                        html += `
+                        <div style="margin-top:30px; background:white; padding:20px; border-radius:15px; border:1px solid #eee; page-break-inside: avoid;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #f1f5f9; padding-bottom:15px; margin-bottom:15px;">
+                                <div><h3 style="color:var(--primary);">${name}</h3><small style="color:#94a3b8">তালিকা ভিত্তিক বিস্তারিত</small></div>
+                                <div style="text-align:right">
+                                    <h4 style="color:var(--info);">মোট: ৳${sheetTotal.toLocaleString('bn-BD')}</h4>
+                                    ${prevSheetTotal > 0 ? `<small style="color:${statusColor}">${diff > 0 ? '↑' : '↓'} ${Math.abs(perc)}% (গত মাস থেকে)</small>` : ''}
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                                    <tbody>${filtered.map(r => `<tr>${headers.map(h => `<td>${r[h] || '-'}</td>`).join('')}</tr>`).join('')}</tbody>
+                                </table>
+                            </div>
+                        </div>`;
+                    }
+                }
+            });
+
+            if(totalFound === 0) {
+                document.getElementById('reportArea').innerHTML = `<div style="text-align:center; padding:50px; color:gray;">এই মাসে কোনো তথ্য পাওয়া যায়নি।</div>`;
+            } else {
+                html += `
+                <div style="margin-top:30px; background:var(--primary); color:white; padding:25px; border-radius:15px; text-align:center;">
+                    <h3>সর্বমোট মাসিক হিসাব</h3>
+                    <h2 style="font-size:2rem; color:var(--accent); margin:10px 0;">৳${currentMonthGrandTotal.toLocaleString('bn-BD')}</h2>
+                    <p>রিপোর্ট জেনারেট হয়েছে: ${new Date().toLocaleString('bn-BD')}</p>
+                </div>
+                <button class="btn-submit no-print" style="margin-top:20px; background:var(--success)" onclick="window.print()">রিপোর্ট প্রিন্ট করুন</button>`;
+                document.getElementById('reportArea').innerHTML = html;
+            }
+        }
+
+        window.onload = loadAppData;
+    </script>
+</body>
+</html>
