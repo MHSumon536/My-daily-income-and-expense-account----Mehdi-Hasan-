@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>আমার হিসাব - প্রিমিয়াম এডিশন</title>
+    <title>আমার হিসাব </title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
@@ -109,12 +109,12 @@
 
     <div class="loader-overlay" id="loader">
         <div class="spinner"></div>
-        <h3 id="loaderText">তথ্য লোড হচ্ছে...</h3>
+        <h3 id="loaderText">MEHEDI HASAN</h3>
     </div>
 
     <div class="top-bar">
         <div class="menu-btn" onclick="toggleSidebar()"><span class="material-icons">menu</span></div>
-        <div class="app-name">আমার হিসাব</div>
+        <div class="app-name">MEHEDI HASAN</div>
     </div>
 
     <div class="sidebar" id="sidebar">
@@ -126,6 +126,7 @@
         <div class="sidebar-item" onclick="openAddDataModal()"><span class="material-icons">add_circle</span>তথ্য যুক্ত করুন</div>
         <div id="dynamic-menu"></div>
         <div class="sidebar-item" onclick="showReportUI()"><span class="material-icons">summarize</span> রিপোর্ট</div>
+        <div class="sidebar-item" onclick="showTerms()"><span class="material-icons">policy</span> শর্তাবলী ও নীতিমালা</div>
     </div>
 
     <div class="overlay" id="overlay" onclick="closeEverything()"></div>
@@ -144,7 +145,6 @@
     </div>
 
     <script>
-        // SCRIPT_URL unchanged as requested
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx4bBloAIUlw_2WJWhGYF3A3i4KjjhVfhh-Zj_ue9SRL_DRB4Ey56Q_Li4PjsgMWwTa/exec';
 
         let appData = {};
@@ -204,22 +204,20 @@
         }
 
         function showDashboard() {
-    // এখানে 'আয়ের হিসাব' এবং 'দৈনিক ব্যয়ের হিসাব' হলো আপনার শিটের নাম
-    // আপনার গুগল শিটে যদি নাম ভিন্ন থাকে, তবে এখানে সেই নাম দিন
-    let totalIncome = calculateTotal('আয়ের হিসাব '); 
-    let totalExpense = calculateTotal('দৈনিক ব্যয় হিসাব ');
-    let balance = totalIncome - totalExpense;
+            let totalIncome = calculateTotal('আয়ের হিসাব '); 
+            let totalExpense = calculateTotal('দৈনিক ব্যয় হিসাব ');
+            let balance = totalIncome - totalExpense;
 
-    let html = `
-        <div class="balance-card">
-            <p style="opacity:0.8; font-size:0.9rem;">বর্তমান মোট ব্যালেন্স</p>
-            <h1 style="font-size:2.5rem; margin:10px 0;">৳ ${balance.toLocaleString('bn-BD')}</h1>
-            <div style="display:flex; justify-content:space-around; margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
-                <div><small>মোট আয়</small><br><b>৳${totalIncome.toLocaleString('bn-BD')}</b></div>
-                <div><small>মোট ব্যয়</small><br><b>৳${totalExpense.toLocaleString('bn-BD')}</b></div>
-            </div>
-        </div>
-        <div class="grid">`;
+            let html = `
+                <div class="balance-card">
+                    <p style="opacity:0.8; font-size:0.9rem;">বর্তমান মোট ব্যালেন্স</p>
+                    <h1 style="font-size:2.5rem; margin:10px 0;">৳ ${balance.toLocaleString('bn-BD')}</h1>
+                    <div style="display:flex; justify-content:space-around; margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
+                        <div><small>মোট আয়</small><br><b>৳${totalIncome.toLocaleString('bn-BD')}</b></div>
+                        <div><small>মোট ব্যয়</small><br><b>৳${totalExpense.toLocaleString('bn-BD')}</b></div>
+                    </div>
+                </div>
+                <div class="grid">`;
 
             sheetNamesList.forEach(name => {
                 let currentData = appData[name] || [];
@@ -278,6 +276,7 @@
             generateFormFields();
         }
 
+        // Google sheets data validation to dynamic fields
         function generateFormFields(prefillData = null) {
             const sheet = document.getElementById('sheetSelector').value;
             const container = document.getElementById('dynamicFields');
@@ -285,9 +284,12 @@
             container.innerHTML = fieldsConfig.map(f => {
                 let val = prefillData ? (prefillData[f.name] || '') : '';
                 if(f.type === 'date' && !val && !prefillData) val = new Date().toISOString().split('T')[0];
+                
+                // অটোমেটিক ডাটা ভ্যালিডেশন এবং ড্রপডাউন জেনারেট
                 return `<div class="form-group"><label>${f.name}</label>
-                ${f.type === 'dropdown' ? `<select id="field_${f.name}">${f.options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}</select>` : 
-                `<input type="${f.type}" id="field_${f.name}" value="${val}">`}</div>`;
+                ${(f.type === 'dropdown' || f.type === 'select') && f.options ? 
+                `<select id="field_${f.name}">${f.options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}</select>` : 
+                `<input type="${f.type || 'text'}" id="field_${f.name}" value="${val}">`}</div>`;
             }).join('');
         }
 
@@ -348,16 +350,17 @@
         function generateReport() {
             const val = document.getElementById('repMonth').value;
             if(!val) return alert('মাস নির্বাচন করুন');
-            const [year, month] = val.split('-');
+            const [yearStr, monthStr] = val.split('-');
+            const targetYear = parseInt(yearStr);
+            const targetMonth = parseInt(monthStr);
             
-            // Logic for previous month comparison
-            const prevDate = new Date(year, month - 2, 1);
+            const prevDate = new Date(targetYear, targetMonth - 2, 1);
             const prevYear = prevDate.getFullYear();
             const prevMonth = prevDate.getMonth() + 1;
 
             let html = `<div style="text-align:center; margin-bottom:30px; background:white; padding:30px; border-radius:15px; border:1px solid #eee;">
-                            <h1 style="color:var(--primary); font-size:2rem;">মাস্টার রিপোর্ট</h1>
-                            <p style="color:#64748b; margin-top:5px;">সময়কাল:${month}/${year}</p>
+                            <h1 style="color:var(--primary); font-size:2rem;">মাস ভিত্তিক রিপোর্ট</h1>
+                            <p style="color:#64748b; margin-top:5px;">সময়কাল: ${targetMonth}/${targetYear}</p>
                             <p style="font-weight:700; color:var(--accent); margin-top:5px;">ডেভেলপার: মেহেদী হাসান</p>
                         </div>`;
             
@@ -365,23 +368,47 @@
             let currentMonthGrandTotal = 0;
             let prevMonthGrandTotal = 0;
 
+            const parseYearMonth = (dateVal) => {
+                if (!dateVal) return { year: null, month: null };
+                let str = String(dateVal).trim();
+                let d = new Date(str);
+                if (!isNaN(d.getTime())) return { year: d.getFullYear(), month: d.getMonth() + 1 };
+                
+                let parts = str.split(/[\/\-\.]/);
+                if (parts.length >= 3) {
+                    if (parts[0].length === 4) return { year: parseInt(parts[0]), month: parseInt(parts[1]) }; 
+                    if (parts[2].length === 4) {
+                        let p1 = parseInt(parts[0]), p2 = parseInt(parts[1]);
+                        return { year: parseInt(parts[2]), month: p1 > 12 ? p2 : p1 }; 
+                    }
+                }
+                return { year: null, month: null };
+            };
+
+            // Automatic generation of report across all available sheets
             sheetNamesList.forEach(name => {
-                let filtered = (appData[name] || []).filter(d => {
-                    if(!d["তারিখ"]) return false;
-                    let dDate = new Date(d["তারিখ"]);
-                    return dDate.getFullYear() == year && (dDate.getMonth() + 1) == month;
+                let dataList = appData[name] || [];
+                if (dataList.length === 0) return;
+
+                let headers = appConfig[name] ? appConfig[name].map(c => c.name) : Object.keys(dataList[0]).filter(k => k !== '_rowIndex');
+                
+                let dateKey = headers.find(h => h.trim() === 'তারিখ' || h.toLowerCase().includes('date'));
+                if (!dateKey) dateKey = Object.keys(dataList[0]).find(k => k.trim() === 'তারিখ' || k.toLowerCase().includes('date')) || 'তারিখ';
+
+                let amtKey = headers.find(h => h.includes('টাকা') || h.includes('পরিমাণ') || h.toLowerCase().includes('amount'));
+                if (!amtKey) amtKey = Object.keys(dataList[0]).find(k => k.includes('টাকা') || k.includes('পরিমাণ')) || headers[1];
+
+                let filtered = dataList.filter(d => {
+                    let ym = parseYearMonth(d[dateKey]);
+                    return ym.year === targetYear && ym.month === targetMonth;
                 });
 
-                let prevFiltered = (appData[name] || []).filter(d => {
-                    if(!d["তারিখ"]) return false;
-                    let dDate = new Date(d["তারিখ"]);
-                    return dDate.getFullYear() == prevYear && (dDate.getMonth() + 1) == prevMonth;
+                let prevFiltered = dataList.filter(d => {
+                    let ym = parseYearMonth(d[dateKey]);
+                    return ym.year === prevYear && ym.month === prevMonth;
                 });
 
                 if(filtered.length > 0 || prevFiltered.length > 0) {
-                    let headers = appConfig[name].map(c => c.name);
-                    let amtKey = headers.find(h => h.includes('টাকা') || h.includes('পরিমাণ'));
-                    
                     let sheetTotal = filtered.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
                     let prevSheetTotal = prevFiltered.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
                     
@@ -415,17 +442,88 @@
             });
 
             if(totalFound === 0) {
-                document.getElementById('reportArea').innerHTML = `<div style="text-align:center; padding:50px; color:gray;">এই মাসে কোনো তথ্য পাওয়া যায়নি।</div>`;
-            } else {
-                html += `
-                <div style="margin-top:30px; background:var(--primary); color:white; padding:25px; border-radius:15px; text-align:center;">
-                    <h3>সর্বমোট মাসিক হিসাব</h3>
-                    <h2 style="font-size:2rem; color:var(--accent); margin:10px 0;">৳${currentMonthGrandTotal.toLocaleString('bn-BD')}</h2>
-                    <p>রিপোর্ট জেনারেট হয়েছে: ${new Date().toLocaleString('bn-BD')}</p>
-                </div>
-                <button class="btn-submit no-print" style="margin-top:20px; background:var(--success)" onclick="window.print()">রিপোর্ট প্রিন্ট করুন</button>`;
-                document.getElementById('reportArea').innerHTML = html;
+                html += `<div style="text-align:center; padding:15px; background:#fff3cd; color:#856404; border-radius:10px; margin-bottom:20px; font-weight:600;">
+                            নির্বাচিত মাসের সঠিক তারিখ সম্বলিত তথ্য পাওয়া যায়নি। নিচে আপনার যুক্ত করা সকল তথ্যের সার্বিক রিপোর্ট দেওয়া হলো:
+                         </div>`;
+                
+                sheetNamesList.forEach(name => {
+                    let dataList = appData[name] || [];
+                    if (dataList.length === 0) return;
+                    
+                    let headers = appConfig[name] ? appConfig[name].map(c => c.name) : Object.keys(dataList[0]).filter(k => k !== '_rowIndex');
+                    let amtKey = headers.find(h => h.includes('টাকা') || h.includes('পরিমাণ') || h.toLowerCase().includes('amount'));
+                    if (!amtKey) amtKey = Object.keys(dataList[0]).find(k => k.includes('টাকা') || k.includes('পরিমাণ')) || headers[1];
+
+                    let sheetTotal = dataList.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
+                    currentMonthGrandTotal += sheetTotal;
+                    totalFound++;
+
+                    html += `
+                    <div style="margin-top:30px; background:white; padding:20px; border-radius:15px; border:1px solid #eee; page-break-inside: avoid;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #f1f5f9; padding-bottom:15px; margin-bottom:15px;">
+                            <div><h3 style="color:var(--primary);">${name}</h3><small style="color:#94a3b8">সকল তথ্যের তালিকা</small></div>
+                            <div style="text-align:right">
+                                <h4 style="color:var(--info);">মোট: ৳${sheetTotal.toLocaleString('bn-BD')}</h4>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+                                <tbody>${dataList.map(r => `<tr>${headers.map(h => `<td>${r[h] || '-'}</td>`).join('')}</tr>`).join('')}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+                });
+                
+                if (totalFound === 0) {
+                     document.getElementById('reportArea').innerHTML = `<div style="text-align:center; padding:50px; color:gray; font-weight:600; font-size:1.2rem;">আপনার শিটে এখনও কোনো তথ্য যুক্ত করা হয়নি। দয়া করে তথ্য যুক্ত করুন।</div>`;
+                     return;
+                }
             }
+
+            html += `
+            <div style="margin-top:30px; background:var(--primary); color:white; padding:25px; border-radius:15px; text-align:center;">
+                <h3>সর্বমোট হিসাব</h3>
+                <h2 style="font-size:2rem; color:var(--accent); margin:10px 0;">৳${currentMonthGrandTotal.toLocaleString('bn-BD')}</h2>
+                <p>রিপোর্ট জেনারেট হয়েছে: ${new Date().toLocaleString('bn-BD')}</p>
+            </div>
+            <button class="btn-submit no-print" style="margin-top:20px; background:var(--success)" onclick="window.print()">রিপোর্ট প্রিন্ট করুন</button>`;
+            
+            document.getElementById('reportArea').innerHTML = html;
+        }
+
+        function showTerms() {
+            let html = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+                    <h2 style="border-left:5px solid var(--accent); padding-left:10px;">শর্তাবলী ও নীতিমালা</h2>
+                    <button onclick="showDashboard()" class="no-print" style="background:none; border:none; cursor:pointer"><span class="material-icons">close</span></button>
+                </div>
+                
+                <div class="card" style="padding:25px; margin-bottom:25px; line-height:1.7;">
+                    <h3 style="color:var(--primary); margin-bottom:15px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">অ্যাপ্লিকেশনের নীতিমালা</h3>
+                    <ul style="margin-left:20px; color:#475569;">
+                        <li style="margin-bottom:10px;"><strong>সম্পূর্ণ ডাইনামিক:</strong> এই ওয়েব অ্যাপ্লিকেশনটি সরাসরি আপনার Google Sheets এর সাথে যুক্ত এবং শিটের ডেটা অনুযায়ী স্বয়ংক্রিয়ভাবে কাজ করে।</li>
+                        <li style="margin-bottom:10px;"><strong>অটোমেটিক ভ্যালিডেশন:</strong> Google Sheets এ কোনো ড্রপডাউন বা ডেটা ভ্যালিডেশন তৈরি করা থাকলে, সেটি স্বয়ংক্রিয়ভাবে তথ্য যুক্ত করার ফর্মে প্রদর্শিত হবে।</li>
+                        <li style="margin-bottom:10px;"><strong>মাস্টার রিপোর্ট:</strong> মাসিক রিপোর্ট অপশনটি আপনার শিটসে থাকা সকল শিটের তথ্য স্বয়ংক্রিয়ভাবে একটি মাত্র রিপোর্টে একত্রিত করে প্রদর্শন করবে।</li>
+                        <li style="margin-bottom:10px;"><strong>ডেটা নিরাপত্তা:</strong> আপনার কোনো ডেটা আমাদের সার্ভারে সেভ হয় না, সম্পূর্ণ ডেটা আপনার নিজস্ব গুগল একাউন্টের শিটে সংরক্ষিত থাকে। ডিলিট করার পূর্বে সতর্ক থাকুন।</li>
+                    </ul>
+                </div>
+                
+                <div class="card" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 35px 25px; border-radius: 16px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
+                    <div style="width: 75px; height: 75px; background: var(--accent); color: var(--primary); font-size: 26px; font-weight: 800; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                        MH
+                    </div>
+                    <h2 style="margin: 0; font-weight: 800; font-size: 1.6rem; letter-spacing: 1px; color: var(--accent);">MEHEDI HASAN</h2>
+                    <h10 style="margin: 0; font-weight: 400; font-size: 1.0rem; letter-spacing: 0.5px; color: var(--accent);"><i class="fa-solid forward mail-box">mehedihasan216073@gmail.com</h10>
+                    <h10 style="margin: 0; font-weight: 400; font-size: 1.0rem; letter-spacing: 0.5px; color: var(--accent);"><contact us:>01892-929486</h10>
+                    <p style="margin: 5px 0 20px; font-size: 0.95rem; opacity: 0.8;">Developer</p>
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; font-size: 0.85rem; opacity: 0.6;">
+                     Amar Hisab © 2026 All Rights Reserved.
+                    </div>
+                </div>
+            `;
+            document.getElementById('main-content').innerHTML = html;
+            closeEverything();
         }
 
         window.onload = loadAppData;
