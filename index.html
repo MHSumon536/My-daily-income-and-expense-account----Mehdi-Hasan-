@@ -136,7 +136,7 @@
         <h3 id="modalTitle" style="margin-bottom:20px; text-align:center;">নতুন তথ্য যুক্ত করুন</h3>
         <input type="hidden" id="editRowIndex">
         <div class="form-group">
-            <label>ক্যাটাগরি সিলেক্ট করুন</label>
+            <label>ক্যাটা জরিমানা সিলেক্ট করুন</label>
             <select id="sheetSelector" onchange="generateFormFields()"></select>
         </div>
         <div id="dynamicFields"></div>
@@ -150,6 +150,26 @@
         let appData = {};
         let appConfig = {};
         let sheetNamesList = [];
+
+        const bnMonthsList = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+        const enToBnNum = (numStr) => String(numStr).split('').map(c => ({'0':'০','1':'১','2':'২','3':'৩','4':'৪','5':'৫','6':'৬','7':'৭','8':'৮','9':'৯'}[c] || c)).join('');
+
+        const parseYearMonth = (dateVal) => {
+            if (!dateVal) return { year: null, month: null };
+            let str = String(dateVal).trim();
+            let d = new Date(str);
+            if (!isNaN(d.getTime())) return { year: d.getFullYear(), month: d.getMonth() + 1 };
+            
+            let parts = str.split(/[\/\-\.]/);
+            if (parts.length >= 3) {
+                if (parts[0].length === 4) return { year: parseInt(parts[0]), month: parseInt(parts[1]) }; 
+                if (parts[2].length === 4) {
+                    let p1 = parseInt(parts[0]), p2 = parseInt(parts[1]);
+                    return { year: parseInt(parts[2]), month: p1 > 12 ? p2 : p1 }; 
+                }
+            }
+            return { year: null, month: null };
+        };
 
         function showLoader(text = "তথ্য আপডেট হচ্ছে...") { 
             document.getElementById('loaderText').innerText = text;
@@ -190,8 +210,21 @@
             document.getElementById('sheetSelector').innerHTML = sheetNamesList.map(n => `<option value="${n}">${n}</option>`).join('');
         }
 
-        function calculateTotal(sheetName) {
+        function calculateTotal(sheetName, filterCurrentMonth = false) {
             let currentData = appData[sheetName] || [];
+            
+            if (filterCurrentMonth) {
+                const now = new Date();
+                const currentYear = now.getFullYear();
+                const currentMonth = now.getMonth() + 1;
+                
+                currentData = currentData.filter(d => {
+                    let dateKey = Object.keys(d).find(k => k.trim() === 'তারিখ' || k.toLowerCase().includes('date')) || 'তারিখ';
+                    let ym = parseYearMonth(d[dateKey]);
+                    return ym.year === currentYear && ym.month === currentMonth;
+                });
+            }
+
             let amountKey = "টাকার পরিমাণ";
             if(appConfig[sheetName]) {
                 let found = appConfig[sheetName].find(c => c.name.includes('টাকা') || c.name.includes('পরিমাণ'));
@@ -204,12 +237,17 @@
         }
 
         function showDashboard() {
-            let totalIncome = calculateTotal('আয়ের হিসাব '); 
-            let totalExpense = calculateTotal('দৈনিক ব্যয় হিসাব ');
+            let totalIncome = calculateTotal('আয়ের হিসাব ', true); 
+            let totalExpense = calculateTotal('দৈনিক ব্যয় হিসাব ', true);
             let balance = totalIncome - totalExpense;
+
+            const now = new Date();
+            const currentMonthName = bnMonthsList[now.getMonth()];
+            const currentYearBn = enToBnNum(now.getFullYear());
 
             let html = `
                 <div class="balance-card">
+                    <h3 style="color:var(--accent); margin-bottom:10px;">${currentMonthName} ${currentYearBn}</h3>
                     <p style="opacity:0.8; font-size:0.9rem;">বর্তমান মোট ব্যালেন্স</p>
                     <h1 style="font-size:2.5rem; margin:10px 0;">৳ ${balance.toLocaleString('bn-BD')}</h1>
                     <div style="display:flex; justify-content:space-around; margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
@@ -221,6 +259,19 @@
 
             sheetNamesList.forEach(name => {
                 let currentData = appData[name] || [];
+                let isFilteredSheet = name.trim() === 'আয়ের হিসাব' || name.trim() === 'দৈনিক ব্যয় হিসাব';
+                
+                if (isFilteredSheet) {
+                    const now = new Date();
+                    const currentYear = now.getFullYear();
+                    const currentMonth = now.getMonth() + 1;
+                    currentData = currentData.filter(d => {
+                        let dateKey = Object.keys(d).find(k => k.trim() === 'তারিখ' || k.toLowerCase().includes('date')) || 'তারিখ';
+                        let ym = parseYearMonth(d[dateKey]);
+                        return ym.year === currentYear && ym.month === currentMonth;
+                    });
+                }
+                
                 let amountKey = "টাকার পরিমাণ";
                 let nameKey = "নাম";
                 if(appConfig[name]) {
@@ -240,7 +291,7 @@
                                     <span style="color:var(--primary); font-weight:700;">৳${i[amountKey] || 0}</span>
                                 </div>`).join('') : '<p style="text-align:center; color:#ccc;">কোনো তথ্য নেই</p>'}
                         </div>
-                        <div style="padding:12px; background:#f8fafc; text-align:right; font-weight:700; color:var(--primary);">মোট: ৳ ${calculateTotal(name).toLocaleString('bn-BD')}</div>
+                        <div style="padding:12px; background:#f8fafc; text-align:right; font-weight:700; color:var(--primary);">মোট: ৳ ${calculateTotal(name, isFilteredSheet).toLocaleString('bn-BD')}</div>
                     </div>`;
             });
             html += '</div>';
@@ -335,10 +386,12 @@
         }
 
         function showReportUI() {
+            let sheetOpts = `<option value="ALL">সকল শিট (একসাথে)</option>` + sheetNamesList.map(n => `<option value="${n}">${n}</option>`).join('');
             document.getElementById('main-content').innerHTML = `
                 <div class="table-card no-print" style="padding:25px; margin-bottom:20px">
                     <h3 style="margin-bottom:15px;">মাসিক প্রফেশনাল রিপোর্ট</h3>
                     <div style="display:flex; gap:12px; flex-wrap: wrap;">
+                        <select id="repSheet" style="flex:1; padding:12px; border:1.5px solid #e2e8f0; border-radius:10px;">${sheetOpts}</select>
                         <input type="month" id="repMonth" style="flex:1; padding:12px; border:1.5px solid #e2e8f0; border-radius:10px;">
                         <button class="btn-submit" style="width:auto; padding:0 30px;" onclick="generateReport()">রিপোর্ট জেনারেট করুন</button>
                     </div>
@@ -349,6 +402,7 @@
 
         function generateReport() {
             const val = document.getElementById('repMonth').value;
+            const selectedSheet = document.getElementById('repSheet').value;
             if(!val) return alert('মাস নির্বাচন করুন');
             const [yearStr, monthStr] = val.split('-');
             const targetYear = parseInt(yearStr);
@@ -358,9 +412,12 @@
             const prevYear = prevDate.getFullYear();
             const prevMonth = prevDate.getMonth() + 1;
 
+            const targetMonthBn = bnMonthsList[targetMonth - 1];
+            const targetYearBn = enToBnNum(targetYear);
+
             let html = `<div style="text-align:center; margin-bottom:30px; background:white; padding:30px; border-radius:15px; border:1px solid #eee;">
                             <h1 style="color:var(--primary); font-size:2rem;">মাস ভিত্তিক রিপোর্ট</h1>
-                            <p style="color:#64748b; margin-top:5px;">সময়কাল: ${targetMonth}/${targetYear}</p>
+                            <p style="color:#64748b; margin-top:5px;">সময়কাল: ${targetMonthBn} ${targetYearBn}</p>
                             <p style="font-weight:700; color:var(--accent); margin-top:5px;">ডেভেলপার: মেহেদী হাসান</p>
                         </div>`;
             
@@ -368,25 +425,10 @@
             let currentMonthGrandTotal = 0;
             let prevMonthGrandTotal = 0;
 
-            const parseYearMonth = (dateVal) => {
-                if (!dateVal) return { year: null, month: null };
-                let str = String(dateVal).trim();
-                let d = new Date(str);
-                if (!isNaN(d.getTime())) return { year: d.getFullYear(), month: d.getMonth() + 1 };
-                
-                let parts = str.split(/[\/\-\.]/);
-                if (parts.length >= 3) {
-                    if (parts[0].length === 4) return { year: parseInt(parts[0]), month: parseInt(parts[1]) }; 
-                    if (parts[2].length === 4) {
-                        let p1 = parseInt(parts[0]), p2 = parseInt(parts[1]);
-                        return { year: parseInt(parts[2]), month: p1 > 12 ? p2 : p1 }; 
-                    }
-                }
-                return { year: null, month: null };
-            };
+            let sheetsToProcess = selectedSheet === 'ALL' ? sheetNamesList : [selectedSheet];
 
             // Automatic generation of report across all available sheets
-            sheetNamesList.forEach(name => {
+            sheetsToProcess.forEach(name => {
                 let dataList = appData[name] || [];
                 if (dataList.length === 0) return;
 
@@ -412,8 +454,10 @@
                     let sheetTotal = filtered.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
                     let prevSheetTotal = prevFiltered.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
                     
-                    currentMonthGrandTotal += sheetTotal;
-                    prevMonthGrandTotal += prevSheetTotal;
+                    if (name.trim() !== 'দৈনিক ব্যয় হিসাব') {
+                        currentMonthGrandTotal += sheetTotal;
+                        prevMonthGrandTotal += prevSheetTotal;
+                    }
 
                     if(filtered.length > 0) {
                         totalFound++;
@@ -446,7 +490,7 @@
                             নির্বাচিত মাসের সঠিক তারিখ সম্বলিত তথ্য পাওয়া যায়নি। নিচে আপনার যুক্ত করা সকল তথ্যের সার্বিক রিপোর্ট দেওয়া হলো:
                          </div>`;
                 
-                sheetNamesList.forEach(name => {
+                sheetsToProcess.forEach(name => {
                     let dataList = appData[name] || [];
                     if (dataList.length === 0) return;
                     
@@ -455,7 +499,10 @@
                     if (!amtKey) amtKey = Object.keys(dataList[0]).find(k => k.includes('টাকা') || k.includes('পরিমাণ')) || headers[1];
 
                     let sheetTotal = dataList.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
-                    currentMonthGrandTotal += sheetTotal;
+                    
+                    if (name.trim() !== 'দৈনিক ব্যয় হিসাব') {
+                        currentMonthGrandTotal += sheetTotal;
+                    }
                     totalFound++;
 
                     html += `
@@ -505,7 +552,7 @@
                         <li style="margin-bottom:10px;"><strong>সম্পূর্ণ ডাইনামিক:</strong> এই ওয়েব অ্যাপ্লিকেশনটি সরাসরি আপনার Google Sheets এর সাথে যুক্ত এবং শিটের ডেটা অনুযায়ী স্বয়ংক্রিয়ভাবে কাজ করে।</li>
                         <li style="margin-bottom:10px;"><strong>অটোমেটিক ভ্যালিডেশন:</strong> Google Sheets এ কোনো ড্রপডাউন বা ডেটা ভ্যালিডেশন তৈরি করা থাকলে, সেটি স্বয়ংক্রিয়ভাবে তথ্য যুক্ত করার ফর্মে প্রদর্শিত হবে।</li>
                         <li style="margin-bottom:10px;"><strong>মাস্টার রিপোর্ট:</strong> মাসিক রিপোর্ট অপশনটি আপনার শিটসে থাকা সকল শিটের তথ্য স্বয়ংক্রিয়ভাবে একটি মাত্র রিপোর্টে একত্রিত করে প্রদর্শন করবে।</li>
-                        <li style="margin-bottom:10px;"><strong>ডেটা নিরাপত্তা:</strong> আপনার কোনো ডেটা আমাদের সার্ভারে সেভ হয় না, সম্পূর্ণ ডেটা আপনার নিজস্ব গুগল একাউন্টের শিটে সংরক্ষিত থাকে। ডিলিট করার পূর্বে সতর্ক থাকুন।</li>
+                        <li style="margin-bottom:10px;"><strong>ডেটা নিরাপত্তা:</strong> আপনার কোনো ডেটা আমাদের সার্ভারে সেভ হয়বিধা হয় না, সম্পূর্ণ ডেটা আপনার নিজস্ব গুগল একাউন্টের শিটে সংরক্ষিত থাকে। ডিলিট করার পূর্বে সতর্ক থাকুন।</li>
                     </ul>
                 </div>
                 
