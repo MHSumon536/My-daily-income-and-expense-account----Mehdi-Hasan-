@@ -338,7 +338,7 @@
 
     <div class="top-nav-wrapper no-print">
         <div class="top-bar-header">
-            <div class="app-name">দৈনিক আয় - ব্যায় হিসাব</div>
+            <div class="app-name">দৈনিক আয় - ব্যয় হিসাব</div>
             <div class="theme-toggle-btn" onclick="toggleTheme()"><span class="material-icons" id="themeIcon">dark_mode</span></div>
         </div>
         <div class="magic-nav" id="magicNav">
@@ -938,6 +938,15 @@
                 let val = prefillData ? (prefillData[f.name] || '') : '';
                 if(f.type === 'date' && !val && !prefillData) val = new Date().toISOString().split('T')[0];
                 
+                if (sheet.trim() === 'পাওনা টাকার হিসাব' && (f.name === 'মন্তব্য' || f.name.includes('মন্তব্য'))) {
+                    let opts = f.options ? [...f.options] : [];
+                    if (!opts.includes('পাওনা আছে')) opts.unshift('এখনো টাকা পাওনা আছে');
+                    if (!opts.includes('টাকা ফেরত দিয়েছে')) opts.push('টাকা ফেরত দিয়েছে');
+                    
+                    return `<div class="form-group"><label>${f.name}</label>
+                    <select id="field_${f.name}">${opts.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}</select></div>`;
+                }
+
                 return `<div class="form-group"><label>${f.name}</label>
                 ${(f.type === 'dropdown' || f.type === 'select') && f.options ? 
                 `<select id="field_${f.name}">${f.options.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}</select>` : 
@@ -953,9 +962,29 @@
             closeModal();
             showLoader("সেভ হচ্ছে...");
             try {
-                await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: editRowIndex ? 'EDIT' : 'ADD', sheetName: sheet, data: newData, rowIndex: editRowIndex ? parseInt(editRowIndex) : null })});
+                let isTransfer = false;
+                if (sheet.trim() === 'পাওনা টাকার হিসাব') {
+                    for (let key in newData) {
+                        if (newData[key] === 'টাকা দিয়েছে বা ফেরত দিয়েছে') {
+                            isTransfer = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (isTransfer) {
+                    let incomeSheet = sheetNamesList.find(n => n.includes('আয়') || n.includes('Income')) || 'আয়ের হিসাব ';
+                    
+                    if (editRowIndex) {
+                        await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'DELETE', sheetName: sheet, rowIndex: parseInt(editRowIndex) }) });
+                    }
+                    await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'ADD', sheetName: incomeSheet, data: newData }) });
+                } else {
+                    await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: editRowIndex ? 'EDIT' : 'ADD', sheetName: sheet, data: newData, rowIndex: editRowIndex ? parseInt(editRowIndex) : null })});
+                }
+                
                 await loadAppData(); 
-                showToast("সফলভাবে সেভ হয়েছে", "success");
+                showToast(isTransfer ? "পাওনা টাকা আয়ের হিসাবে যুক্ত হয়েছে" : "সফলভাবে সেভ হয়েছে", "success");
             } catch (err) { 
                 showToast('ত্রুটি হয়েছে', 'error'); 
             }
@@ -1138,7 +1167,10 @@
                     let sheetTotal = filtered.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
                     let prevSheetTotal = prevFiltered.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
                     
-                    if (name.trim() !== 'দৈনিক ব্যয় হিসাব') {
+                    if (name.trim() === 'দৈনিক ব্যয় হিসাব') {
+                        currentMonthGrandTotal -= sheetTotal;
+                        prevMonthGrandTotal -= prevSheetTotal;
+                    } else {
                         currentMonthGrandTotal += sheetTotal;
                         prevMonthGrandTotal += prevSheetTotal;
                     }
@@ -1185,7 +1217,9 @@
 
                     let sheetTotal = dataList.reduce((sum, r) => sum + (parseFloat(String(r[amtKey] || 0).replace(/[৳,]/g, '')) || 0), 0);
                     
-                    if (name.trim() !== 'দৈনিক ব্যয় হিসাব') {
+                    if (name.trim() === 'দৈনিক ব্যয় হিসাব') {
+                        currentMonthGrandTotal -= sheetTotal;
+                    } else {
                         currentMonthGrandTotal += sheetTotal;
                     }
                     totalFound++;
